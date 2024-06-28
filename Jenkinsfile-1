@@ -1,15 +1,21 @@
 pipeline {
   agent any
+  tools {
+    maven 'M3' 
+  }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
   }
   stages {
-    stage('Scan') {
+    stage('Checkout') {
       steps {
-        withSonarQubeEnv('sqb') { 
-          sh 'chmod +x ./mvnw'  
-          sh './mvnw clean org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.0.2155:sonar'
-        }
+        git 'https://github.com/itsmouhy/AssafaBanking.git'
+      }
+    }
+    stage('Build') {
+      steps {
+        sh 'chmod +x ./mvnw' 
+        sh './mvnw clean install'
       }
     }
   }
