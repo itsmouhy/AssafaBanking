@@ -1,7 +1,8 @@
 pipeline {
   agent any
   tools {
-    maven 'M3' 
+    maven 'M3'
+    git 'Default'
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
