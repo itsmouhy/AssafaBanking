@@ -2,6 +2,7 @@ pipeline {
   agent any
 
   environment {
+        DOCKERHUB_CREDENTIALS = credentials('mouhy-dockerhub')
         DOCKERHUB_REPO = 'mouhy/pfe2024'
         IMAGE_TAG = "latest" 
     }
@@ -9,31 +10,25 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '5'))
   }
   stages {
-    stage('Scan') {
-      steps { 
-
-        withSonarQubeEnv(installationName: 'sqb') { 
-          sh 'chmod +x ./mvnw'  
-          sh './mvnw clean org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.0.2155:sonar'
-        }
+    stage('Build') {
+      steps {
+        sh 'docker build -t mouhy/pfe2024:latest .'
       }
     }
- stage('Build Docker Image') {
-            steps {
-                script {
-                    def customImage = docker.build("${DOCKERHUB_REPO}:${IMAGE_TAG}")
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                script { {
-                        def customImage = docker.build("${DOCKERHUB_REPO}:${IMAGE_TAG}")
-                        customImage.push()
-                    }
-                }
-            }
-        }
+    stage('Login') {
+      steps {
+        sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+      }
     }
+    stage('Push') {
+      steps {
+        sh 'docker push mouhy/pfe2024:latest'
+      }
+    }
+  }
+  post {
+    always {
+      sh 'docker logout'
+    }
+  }
 }
