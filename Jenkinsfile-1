@@ -3,7 +3,7 @@ pipeline {
 
   environment {
         DOCKERHUB_CREDENTIALS = credentials('mouhy-dockerhub')
-        DOCKERHUB_REPO = 'mouhy/pfe2024'
+        DOCKERHUB_REPO = 'mouhy/bks'
         IMAGE_TAG = "latest" 
     }
   options {
@@ -12,7 +12,7 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh 'docker build -t mouhy/pfe2024:latest .'
+        sh 'docker build -t mouhy/bks:latest .'
       }
     }
     stage('Login') {
