@@ -1,5 +1,11 @@
 pipeline {
   agent any
+
+  environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')
+        DOCKERHUB_REPO = 'yourdockerhubusername/yourrepository'
+        IMAGE_TAG = "latest" 
+    }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
   }
@@ -13,5 +19,23 @@ pipeline {
         }
       }
     }
-  }
+ stage('Build Docker Image') {
+            steps {
+                script {
+                    def customImage = docker.build("${DOCKERHUB_REPO}:${IMAGE_TAG}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'DOCKERHUB_CREDENTIALS') {
+                        def customImage = docker.build("${DOCKERHUB_REPO}:${IMAGE_TAG}")
+                        customImage.push()
+                    }
+                }
+            }
+        }
+    }
 }
