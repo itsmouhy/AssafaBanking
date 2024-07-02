@@ -12,17 +12,23 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh 'docker build -t mouhy/bks:latest .'
+        sh 'docker build -t $DOCKERHUB_REPO:$IMAGE_TAG .'
       }
     }
     stage('Login') {
       steps {
-        sh 'echo $DOCKERHUB_CREDENTIALS | docker login -u $DOCKERHUB_CREDENTIALS --password-stdin'
+        script {
+          def dockerUsername = DOCKERHUB_CREDENTIALS_USR
+          def dockerPassword = DOCKERHUB_CREDENTIALS_PSW
+          sh """
+            echo $dockerPassword | docker login -u $dockerUsername --password-stdin
+          """
+        }
       }
     }
     stage('Push') {
       steps {
-        sh 'docker push mouhy/bks:latest'
+        sh 'docker push $DOCKERHUB_REPO:$IMAGE_TAG'
       }
     }
   }
