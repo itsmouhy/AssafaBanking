@@ -5,6 +5,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('mouhy-dockerhub')
         DOCKERHUB_REPO = 'mouhy/bks'
         IMAGE_TAG = "latest" 
+        KUBECONFIG_CREDENTIALS = credentials('kubeconfig')
     }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
@@ -29,6 +30,16 @@ pipeline {
     stage('Push') {
       steps {
         sh 'docker push $DOCKERHUB_REPO:$IMAGE_TAG'
+      }
+    }
+    stage('Deploy to Kubernetes') {
+      steps {
+        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+          sh '''
+            kubectl apply -f deployment.yaml
+            kubectl apply -f service.yaml
+          '''
+        }
       }
     }
   }
