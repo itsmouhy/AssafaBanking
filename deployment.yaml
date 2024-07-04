@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assafabanking-app
+  labels:
+    app: assafabanking-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: assafabanking-app
+  template:
+    metadata:
+      labels:
+        app: assafabanking-app
+    spec:
+      containers:
+      - name: assafabanking-app
+        image: mouhy/bks:latest
+        ports:
+        - containerPort: 8000
