@@ -37,13 +37,11 @@ pipeline {
       }
     }
 
-    stage('Deploy to Kubernetes') {
+  
+    stage('Deploying App to Kubernetes') {
       steps {
-        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-          sh '''
-            kubectl apply -f deployment.yaml
-            kubectl apply -f service.yaml
-          '''
+        script {
+          kubernetesDeploy(configs: "deployment.yml", kubeconfigId: "kubernetes")
         }
       }
     }
@@ -51,9 +49,7 @@ pipeline {
 
   post {
     always {
-      node('Built-In Node') {
         sh 'docker logout'
-      }
     }
   }
 }
