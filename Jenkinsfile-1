@@ -1,17 +1,68 @@
 pipeline {
   agent any
+  tools {
+        maven "localMaven"
+        jdk "Java8"
+    }
 
   environment {
     DOCKERHUB_CREDENTIALS = credentials('mouhy-dockerhub')
     DOCKERHUB_REPO = 'mouhy/bks'
     IMAGE_TAG = "latest"
-    KUBECONFIG_CREDENTIALS = credentials('kubeconfig')
+    NEXUS_VERSION = "nexus3"
+    NEXUS_URL = "http://localhost:8081/"
+    NEXUS_CREDENTIAL_ID = "nexusCredential"
+    NEXUS_REPOSITORY = "AssafaMaven"
+    ARTIFACT_VERSION = "${BUILD_NUMBER}"
+    }
   }
 
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
   }
 
+        stage("mvn build") {
+            steps {
+                script {
+                    sh "mvn clean package"
+                }
+            }
+        }
+
+        stage("publish to nexus") {
+            steps {
+                script {          
+                    pom = readMavenPom file: "pom.xml";
+                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
+                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
+                    artifactPath = filesByGlob[0].path;
+                    artifactExists = fileExists artifactPath;
+
+                    if(artifactExists) {
+                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
+
+                        nexusArtifactUploader(
+                            nexusVersion: NEXUS_VERSION,
+                            protocol: NEXUS_PROTOCOL,
+                            nexusUrl: NEXUS_URL,
+                            groupId: pom.groupId,
+                            version: ARTIFACT_VERSION,
+                            repository: NEXUS_REPOSITORY,
+                            credentialsId: NEXUS_CREDENTIAL_ID,
+                            artifacts: [
+                                [artifactId: pom.artifactId,
+                                classifier: '',
+                                file: artifactPath,
+                                type: pom.packaging]
+                            ]
+                        );
+
+                    } else {
+                        error "*** File: ${artifactPath}, could not be found";
+                    }
+                }
+            }
+        }
   stages {
     stage('Build') {
       steps {
@@ -37,14 +88,5 @@ pipeline {
       }
     }
 
-  
-    stage('Deploying App to Kubernetes') {
-      steps {
-        script {
-          kubernetesDeploy(configs: "deployment.yml", kubeconfigId: "kubernetes")
-        }
-      }
-    }
-  }
-
+ 
 }
