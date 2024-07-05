@@ -1,21 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: assafabanking-app
-  labels:
-    app: assafabanking-app
+  name: assafabankingapp
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: assafabanking-app
+      app: assafabankingapp
   template:
     metadata:
       labels:
-        app: assafabanking-app
+        app: assafabankingapp
     spec:
       containers:
-      - name: assafabanking-app
+      - name: assafabankingapp
         image: mouhy/bks:latest
         ports:
-        - containerPort: 8000
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assafabankingapp-service
+spec:
+  selector:
+    app: assafabankingapp
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
