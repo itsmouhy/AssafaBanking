@@ -4,10 +4,11 @@
 
 - Integration Jenkins with Docker for CI/CD workflows.
 - Configuration of Jenkins to build Docker images and push them to Dockerhub
+- Deploy to Kubernetes
 
 ## Prerequisites
 
-- Jenkins installed and running
+- Jenkins and Minikube installed and running
 - Docker installed on the Jenkins server or Jenkins agent
 - Admin access to Jenkins server or agent
 
