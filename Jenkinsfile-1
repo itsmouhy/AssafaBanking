@@ -1,23 +1,23 @@
 pipeline {
-  agent any
-  tools {
+    agent any
+    tools {
         maven "localMaven"
         jdk "Java8"
     }
 
-  environment {
-    NEXUS_VERSION = "nexus3"
-    NEXUS_URL = "http://localhost:8081/"
-    NEXUS_CREDENTIAL_ID = "nexusCredential"
-    NEXUS_REPOSITORY = "AssafaMaven"
-    ARTIFACT_VERSION = "${BUILD_NUMBER}"
+    environment {
+        NEXUS_VERSION = "nexus3"
+        NEXUS_URL = "http://localhost:8081/"
+        NEXUS_CREDENTIAL_ID = "nexusCredential"
+        NEXUS_REPOSITORY = "AssafaMaven"
+        ARTIFACT_VERSION = "${BUILD_NUMBER}"
     }
-  }
 
-  options {
-    buildDiscarder(logRotator(numToKeepStr: '5'))
-  }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
 
+    stages {
         stage("mvn build") {
             steps {
                 script {
@@ -29,14 +29,14 @@ pipeline {
         stage("publish to nexus") {
             steps {
                 script {          
-                    pom = readMavenPom file: "pom.xml";
-                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
+                    pom = readMavenPom file: "pom.xml"
+                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
                     echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
-                    artifactPath = filesByGlob[0].path;
-                    artifactExists = fileExists artifactPath;
+                    artifactPath = filesByGlob[0].path
+                    artifactExists = fileExists artifactPath
 
                     if(artifactExists) {
-                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
+                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}"
 
                         nexusArtifactUploader(
                             nexusVersion: NEXUS_VERSION,
@@ -52,21 +52,13 @@ pipeline {
                                 file: artifactPath,
                                 type: pom.packaging]
                             ]
-                        );
+                        )
 
                     } else {
-                        error "*** File: ${artifactPath}, could not be found";
+                        error "*** File: ${artifactPath}, could not be found"
                     }
                 }
             }
         }
- 
     }
-
-    stage('Push') {
-      steps {
-        sh 'docker push $DOCKERHUB_REPO:$IMAGE_TAG'
-      }
-    }
-
- 
+}
