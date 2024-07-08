@@ -26,6 +26,14 @@ pipeline {
             }
         }
 
+stage('Debug') {
+            steps {
+                script {
+                    sh 'cat /var/jenkins_home/tools/hudson.model.JDK/jdk-9-oth-JPR/jdk.sh' 
+                    sh 'env | sort' // Print all environment variables
+                }
+            }
+        }
         stage("publish to nexus") {
             steps {
                 script {          
