@@ -2,7 +2,7 @@ pipeline {
     agent any
     tools {
         maven "localMaven"
-        jdk "Java8"
+        jdk 'jdk-9-oth-JPR'
     }
 
     environment {
