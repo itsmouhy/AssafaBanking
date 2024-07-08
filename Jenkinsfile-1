@@ -6,9 +6,6 @@ pipeline {
     }
 
   environment {
-    DOCKERHUB_CREDENTIALS = credentials('mouhy-dockerhub')
-    DOCKERHUB_REPO = 'mouhy/bks'
-    IMAGE_TAG = "latest"
     NEXUS_VERSION = "nexus3"
     NEXUS_URL = "http://localhost:8081/"
     NEXUS_CREDENTIAL_ID = "nexusCredential"
@@ -63,23 +60,7 @@ pipeline {
                 }
             }
         }
-  stages {
-    stage('Build') {
-      steps {
-        sh 'docker build -t $DOCKERHUB_REPO:$IMAGE_TAG .'
-      }
-    }
-
-    stage('Login') {
-      steps {
-        script {
-          def dockerUsername = DOCKERHUB_CREDENTIALS_USR
-          def dockerPassword = DOCKERHUB_CREDENTIALS_PSW
-          sh """
-            echo $dockerPassword | docker login -u $dockerUsername --password-stdin
-          """
-        }
-      }
+ 
     }
 
     stage('Push') {
@@ -89,4 +70,3 @@ pipeline {
     }
 
  
-}
