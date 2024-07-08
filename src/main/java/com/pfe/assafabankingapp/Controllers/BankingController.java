@@ -48,7 +48,7 @@ public class BankingController {
     public ResponseEntity<Customer> patchCustomer(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         try {
             Optional<Customer> optionalCustomer = customerRepository.findById(id);
-            if (optionalCustomer.isEmpty()) {
+            if (!optionalCustomer.isPresent()) {
                 return ResponseEntity.notFound().build();
             }
 
@@ -102,7 +102,7 @@ public class BankingController {
     @PutMapping("/transactions")
     public ResponseEntity<String> updateBalanceAndAddTransaction(@Valid @RequestBody Transaction transaction) {
         Optional<Customer> optionalCustomer = customerRepository.findById(transaction.getAccount_Number());
-        if (optionalCustomer.isEmpty()) {
+        if (!optionalCustomer.isPresent()) {
             return ResponseEntity.notFound().build();
         }
 
