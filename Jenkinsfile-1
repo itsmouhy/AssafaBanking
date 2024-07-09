@@ -1,46 +1,68 @@
 pipeline {
     agent any
     tools {
-        maven "localMaven"
+        maven 'localMaven'
         jdk 'Java8'
     }
-
     environment {
-        NEXUS_VERSION = "nexus3"
-        NEXUS_URL = "http://localhost:8081/repository/AssafaBanking/"
-        NEXUS_CREDENTIAL_ID = "nexusCredential"
-        NEXUS_REPOSITORY = "AssafaMaven"
+        NEXUS_VERSION = 'nexus3'
+        NEXUS_URL = 'http://localhost:8081/'
+        NEXUS_CREDENTIAL_ID = 'nexusCredential'
+        NEXUS_REPOSITORY = 'AssafaMaven'
         ARTIFACT_VERSION = "${BUILD_NUMBER}"
+        MYSQL_ROOT_PASSWORD = 'r00t'
+        MYSQL_DATABASE = 'bankdb'
+        MYSQL_USER = 'root'
+        MYSQL_PASSWORD = 'r00t'
     }
-
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '5'))
-    }
-
     stages {
-        stage("mvn build") {
+        stage('Start MySQL') {
             steps {
                 script {
-                    sh "mvn clean package"
+                    def mysqlContainer = docker.image('mysql:5.7').run(
+                        "-e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD " +
+                        "-e MYSQL_DATABASE=$MYSQL_DATABASE " +
+                        "-e MYSQL_USER=$MYSQL_USER " +
+                        "-e MYSQL_PASSWORD=$MYSQL_PASSWORD " +
+                        "-p 3306:3306"
+                    )
+                    env.MYSQL_CONTAINER_ID = mysqlContainer.id
                 }
             }
         }
-
-        stage("publish to nexus") {
+        stage('mvn build') {
             steps {
-                script {          
-                    pom = readMavenPom file: "pom.xml"
+                script {
+                    // Wait for MySQL to initialize
+                    sleep 30
+                    // Set the database URL for the application to connect to the Docker MySQL instance
+                    withEnv(["spring.datasource.url=jdbc:mysql://localhost:3306/bankdb",
+                             "spring.datasource.username=root",
+                             "spring.datasource.password=r00t",
+                             "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
+                             "spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect",
+                             "spring.jpa.hibernate.ddl-auto=update",
+                             "spring.jpa.generate-ddl=true"]) {
+                        sh 'mvn clean package'
+                    }
+                }
+            }
+        }
+        stage('publish to nexus') {
+            steps {
+                script {
+                    pom = readMavenPom file: 'pom.xml'
                     filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
                     echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
                     artifactPath = filesByGlob[0].path
                     artifactExists = fileExists artifactPath
 
-                    if(artifactExists) {
+                    if (artifactExists) {
                         echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}"
 
                         nexusArtifactUploader(
                             nexusVersion: NEXUS_VERSION,
-                            protocol: NEXUS_PROTOCOL,
+                            protocol: 'http',
                             nexusUrl: NEXUS_URL,
                             groupId: pom.groupId,
                             version: ARTIFACT_VERSION,
@@ -48,15 +70,24 @@ pipeline {
                             credentialsId: NEXUS_CREDENTIAL_ID,
                             artifacts: [
                                 [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: artifactPath,
-                                type: pom.packaging]
+                                 classifier: '',
+                                 file: artifactPath,
+                                 type: pom.packaging]
                             ]
                         )
-
                     } else {
                         error "*** File: ${artifactPath}, could not be found"
                     }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                if (env.MYSQL_CONTAINER_ID) {
+                    sh "docker stop ${env.MYSQL_CONTAINER_ID}"
+                    sh "docker rm ${env.MYSQL_CONTAINER_ID}"
                 }
             }
         }
