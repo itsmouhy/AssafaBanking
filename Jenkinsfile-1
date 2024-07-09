@@ -6,9 +6,10 @@ pipeline {
     }
     environment {
         NEXUS_VERSION = 'nexus3'
-        NEXUS_URL = 'http://localhost:8081/repository/AssafaBanking/'
+        NEXUS_URL = 'http://localhost:8081'
         NEXUS_CREDENTIAL_ID = 'nexusCredential'
         ARTIFACT_VERSION = "readMavenPom().getVersion()"
+        NEXUS_REPOSITORY = 'AssafaBanking'
         MYSQL_ROOT_PASSWORD = 'r00t'
         MYSQL_DATABASE = 'bankdb'
         MYSQL_USER = 'root'
@@ -50,6 +51,7 @@ pipeline {
                             groupId: pom.groupId,
                             version: ARTIFACT_VERSION,
                             credentialsId: NEXUS_CREDENTIAL_ID,
+                            repository: NEXUS_REPOSITORY,
                             artifacts: [
                                 [artifactId: pom.artifactId,
                                  classifier: '',
