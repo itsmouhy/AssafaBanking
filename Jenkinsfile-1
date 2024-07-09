@@ -16,26 +16,10 @@ pipeline {
         MYSQL_PASSWORD = 'r00t'
     }
     stages {
-        stage('Start MySQL') {
-            steps {
-                script {
-                    def mysqlContainer = docker.image('mysql:5.7').run(
-                        "-e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD " +
-                        "-e MYSQL_DATABASE=$MYSQL_DATABASE " +
-                        "-e MYSQL_USER=$MYSQL_USER " +
-                        "-e MYSQL_PASSWORD=$MYSQL_PASSWORD " +
-                        "-p 3306:3306"
-                    )
-                    env.MYSQL_CONTAINER_ID = mysqlContainer.id
-                }
-            }
-        }
         stage('mvn build') {
             steps {
                 script {
-                    // Wait for MySQL to initialize
-                    sleep 30
-                    // Set the database URL for the application to connect to the Docker MySQL instance
+                    // Set the database URL for the application to connect to the local MySQL instance
                     withEnv(["spring.datasource.url=jdbc:mysql://localhost:3306/bankdb",
                              "spring.datasource.username=root",
                              "spring.datasource.password=r00t",
@@ -85,10 +69,7 @@ pipeline {
     post {
         always {
             script {
-                if (env.MYSQL_CONTAINER_ID) {
-                    sh "docker stop ${env.MYSQL_CONTAINER_ID}"
-                    sh "docker rm ${env.MYSQL_CONTAINER_ID}"
-                }
+                echo 'Pipeline completed.'
             }
         }
     }
