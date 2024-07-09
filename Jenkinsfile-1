@@ -1,82 +1,88 @@
 pipeline {
     agent any
+    
     tools {
         maven 'localMaven'
         jdk 'Java8'
     }
+    
     environment {
-        environment {
-    NEXUS_VERSION = 'nexus3'
-    NEXUS_URL = 'localhost:8081'
-    NEXUS_REPOSITORY = 'AssafaBanking'
-    NEXUS_CREDENTIAL_ID = 'nexusCredential'
-
+        NEXUS_VERSION = 'nexus3'
+        NEXUS_URL = 'localhost:8081'
+        NEXUS_REPOSITORY = 'AssafaBanking'
+        NEXUS_CREDENTIAL_ID = 'nexusCredential'
         MYSQL_ROOT_PASSWORD = 'r00t'
         MYSQL_DATABASE = 'bankdb'
         MYSQL_USER = 'root'
-        MYSQL_PASSWORD = 'r00t'
     }
+    
     stages {
-        stage('mvn build') {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build') {
             steps {
                 script {
-                    // Set the database URL for the application to connect to the local MySQL instance
-                    withEnv(["spring.datasource.url=jdbc:mysql://localhost:3306/bankdb",
-                             "spring.datasource.username=root",
-                             "spring.datasource.password=r00t",
-                             "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
-                             "spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect",
-                             "spring.jpa.hibernate.ddl-auto=update",
-                             "spring.jpa.generate-ddl=true"]) {
-                        sh 'mvn clean package'
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                script {
+                    sh 'mvn test'
+                }
+            }
+        }
+        
+        stage('Publish to Nexus') {
+            steps {
+                script {
+                    def pom = readMavenPom file: 'pom.xml'
+                    def filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
+                    def artifactPath = filesByGlob[0].path
+                    
+                    if (fileExists(artifactPath)) {
+                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}"
+                        
+                        nexusArtifactUploader(
+                            nexusVersion: NEXUS_VERSION,
+                            protocol: 'http',
+                            nexusUrl: NEXUS_URL,
+                            groupId: pom.groupId,
+                            version: pom.version,
+                            repository: NEXUS_REPOSITORY,
+                            credentialsId: NEXUS_CREDENTIAL_ID,
+                            artifacts: [
+                                [artifactId: pom.artifactId,
+                                 classifier: '',
+                                 file: artifactPath,
+                                 type: pom.packaging]
+                            ]
+                        )
+                        echo "Artifact upload successful"
+                    } else {
+                        error "*** File: ${artifactPath}, could not be found"
                     }
                 }
             }
         }
-        stage('publish to nexus') {
-    steps {
-        script {
-            try {
-                pom = readMavenPom file: 'pom.xml'
-                filesByGlob = findFiles(glob: "target/*.${pom.packaging}")
-                artifactPath = filesByGlob[0].path
-                artifactExists = fileExists artifactPath
-                
-                if(artifactExists) {
-                    echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}"
-                    
-                    nexusArtifactUploader(
-                        nexusVersion: NEXUS_VERSION,
-                        protocol: 'http',
-                        nexusUrl: NEXUS_URL,
-                        groupId: pom.groupId,
-                        version: pom.version,
-                        repository: NEXUS_REPOSITORY,
-                        credentialsId: NEXUS_CREDENTIAL_ID,
-                        artifacts: [
-                            [artifactId: pom.artifactId,
-                             classifier: '',
-                             file: artifactPath,
-                             type: pom.packaging]
-                        ]
-                    )
-                    echo "Artifact upload successful"
-                } else {
-                    error "*** File: ${artifactPath}, could not be found"
-                }
-            } catch (Exception e) {
-                echo "Failed to upload artifact to Nexus: ${e.getMessage()}"
-                throw e
-            }
-        }
     }
-}
-    }
+    
     post {
         always {
-            script {
-                echo 'Pipeline completed.'
-            }
+            echo 'Pipeline completed.'
+            deleteDir() // Clean up workspace
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
