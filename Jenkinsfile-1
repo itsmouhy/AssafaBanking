@@ -6,9 +6,9 @@ pipeline {
     }
     environment {
         NEXUS_VERSION = 'nexus3'
-        NEXUS_URL = 'http://localhost:8081/repository/AssafaBanking/'
+        NEXUS_URL = 'http://localhost:8081/'
         NEXUS_CREDENTIAL_ID = 'nexusCredential'
-        NEXUS_REPOSITORY = 'AssafaMaven'
+        NEXUS_REPOSITORY = 'AssafaBanking'
         ARTIFACT_VERSION = "${BUILD_NUMBER}"
         MYSQL_ROOT_PASSWORD = 'r00t'
         MYSQL_DATABASE = 'bankdb'
